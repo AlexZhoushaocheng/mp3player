@@ -23,10 +23,19 @@ Mp3player::~Mp3player(){
 
 void Mp3player::setMp3File(const std::string& mp3file)
 {
-    filename = mp3file;
+    if(mp3file != filename)
+    {
+        stop();
+        filename = mp3file;
+    }
 }
 
 bool Mp3player::loopPlay(){
+    if(1 == Pa_IsStreamActive(stream))
+    {
+        return true;
+    }
+
     if(mp3dec_ex_open(dec, filename.data(), MP3D_SEEK_TO_SAMPLE)){
         perror("open mp3 file failed");
         return false;
@@ -70,7 +79,10 @@ bool Mp3player::loopPlay(){
 void Mp3player::stop(){
     loop = false;
     std::lock_guard<std::mutex> locker(stream_lock);
-    Pa_StopStream(stream);
-    Pa_CloseStream(stream);
-    loopTh.join();
+    if(1 == Pa_IsStreamActive(stream))
+    {
+      Pa_StopStream(stream);
+      Pa_CloseStream(stream);
+      loopTh.join();
+    }
 }
